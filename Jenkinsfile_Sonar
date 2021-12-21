@@ -1,0 +1,25 @@
+node {
+   
+   stage ('Checkout') {
+        checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[credentialsId: '3cf2f7f1-eb94-47bc-8c2d-54ba906578f9', url: 'https://github.com/md4abrar/Jenkinsfile.git']]])
+    }
+   
+    stage ('Build') {
+        sh "mvn clean install"
+    }
+   
+    stage ('Code quality') {
+        withSonarQubeEnv('Sonarqube') {
+        sh "mvn sonar:sonar -Dsonar.projectKey=titan  -Dsonar.host.url=http://65.0.178.174:9000   -Dsonar.login=896e358b275c269bb27c821cc85af03aa4c66cbf"
+  }
+}
+   sleep 60
+   stage("Quality Gate"){
+          timeout(time: 5, unit: 'MINUTES') {
+              def qg = waitForQualityGate()
+              if (qg.status != 'OK') {
+                  error "Pipeline aborted due to quality gate failure: ${qg.status}"
+              }
+          }
+}
+}
